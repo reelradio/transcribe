@@ -1,100 +1,105 @@
-#!/usr/bin/env python
-
-# Copyright 2017 Google Inc. All Rights Reserved.
+# Copyright 2021 Google Inc. All Rights Reserved:
+#   upload_blob()
+#   transcribe_gcs()
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
 #      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
-"""Google Cloud Speech API sample application using the REST API for batch
-processing.
-Example usage:
-    python transcribe.py resources/audio.raw
-    python transcribe.py gs://cloud-samples-tests/speech/brooklyn.flac
+# Modified for use by:
+# Victor Galbraith
+# 14 February 2022
+
+"""Google Cloud Speech-to-Text application using the gRPC for async
+batch processing.
 """
 
+
 import argparse
+import glob
+import os
+import sys
+
+from google.cloud import speech
+from google.cloud import storage
+from pathlib import Path
+from pydub import AudioSegment
 
 
-# [START speech_transcribe_sync]
-def transcribe_file(speech_file):
-    """Transcribe the given audio file."""
-    from google.cloud import speech
-    import io
-
-    client = speech.SpeechClient()
-
-    # [START speech_python_migration_sync_request]
-    # [START speech_python_migration_config]
-    with io.open(speech_file, "rb") as audio_file:
-        content = audio_file.read()
-
-    audio = speech.RecognitionAudio(content=content)
-    config = speech.RecognitionConfig(
-        encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
-        sample_rate_hertz=16000,
-        language_code="en-US",
-    )
-    # [END speech_python_migration_config]
-
-    # [START speech_python_migration_sync_response]
-    response = client.recognize(config=config, audio=audio)
-
-    # [END speech_python_migration_sync_request]
-    # Each result is for a consecutive portion of the audio. Iterate through
-    # them to get the transcripts for the entire audio file.
-    for result in response.results:
-        # The first alternative is the most likely one for this portion.
-        print(u"Transcript: {}".format(result.alternatives[0].transcript))
-    # [END speech_python_migration_sync_response]
+# [START convert .m4a to .flac]
+def convert_m4a_to_flac(m4a_file):
+    print("Waiting for conversion to FLAC...")
+    new_version = AudioSegment.from_file(m4a_file)
+    new_version.export(Path(m4a_file).stem + ".flac", format="flac", parameters=["-ar", "16000", "-ac", "1"])
+    print("Conversion complete...")
+# [END convert .m4a to .flac]
 
 
-# [END speech_transcribe_sync]
+# [START storage_upload_file]
+def upload_blob(bucket_name, source_file_name, destination_blob_name):
+    """Uploads a file to the bucket."""
+    # The ID of your GCS bucket
+    # bucket_name = "your-bucket-name"
+    # The path to your file to upload
+    # source_file_name = "local/path/to/file"
+    # The ID of your GCS object
+    # destination_blob_name = "storage-object-name"
+
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(destination_blob_name)
+
+    print("Waiting for upload to Google Cloud Storage...")
+    blob.upload_from_filename(source_file_name)
+
+    print("Upload complete...")
+# [END storage_upload_file]
 
 
-# [START speech_transcribe_sync_gcs]
+# [START speech_transcribe_async_gcs]
 def transcribe_gcs(gcs_uri):
-    """Transcribes the audio file specified by the gcs_uri."""
-    from google.cloud import speech
-
+    """Asynchronously transcribes the audio file specified by the gcs_uri."""
     client = speech.SpeechClient()
 
-    # [START speech_python_migration_config_gcs]
     audio = speech.RecognitionAudio(uri=gcs_uri)
     config = speech.RecognitionConfig(
         encoding=speech.RecognitionConfig.AudioEncoding.FLAC,
         sample_rate_hertz=16000,
         language_code="en-US",
     )
-    # [END speech_python_migration_config_gcs]
 
-    response = client.recognize(config=config, audio=audio)
+    operation = client.long_running_recognize(config=config, audio=audio)
+
+    print("Waiting for transcript to complete...")
+    response = operation.result(timeout=90)
 
     # Each result is for a consecutive portion of the audio. Iterate through
     # them to get the transcripts for the entire audio file.
     for result in response.results:
         # The first alternative is the most likely one for this portion.
-        print(u"Transcript: {}".format(result.alternatives[0].transcript))
+        # print(u"Transcript: {}".format(result.alternatives[0].transcript))
+        f.write(u"{}".format(result.alternatives[0].transcript))
+        print("Confidence: {}".format(result.alternatives[0].confidence))
 
-
-# [END speech_transcribe_sync_gcs]
+    f.close()
+# [END speech_transcribe_async_gcs]
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
-    )
-    parser.add_argument("path", help="File or GCS path for audio file to be recognized")
-    args = parser.parse_args()
-    if args.path.startswith("gs://"):
-        transcribe_gcs(args.path)
-    else:
-        transcribe_file(args.path)
+    # grab stem from filename open new file named {filename}.txt
+    audio_name = sys.argv[1]
+    audio_stem = Path(audio_name).stem
+    audio_text = audio_stem + ".txt"
+    f = open(audio_text, "a")
+
+    # Convert audio
+    convert_m4a_to_flac(audio_name)
+    audio_converted = audio_stem + ".flac"
+
+    # Upload converted audio file
+    upload_blob("reelradio", audio_converted, audio_converted)
+
+    # Transcribe audio file
+    transcribe_gcs("gs://reelradio/" + audio_converted)
