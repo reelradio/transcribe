@@ -1,6 +1,7 @@
 # Copyright 2021 Google Inc. All Rights Reserved:
 #   upload_blob()
 #   transcribe()
+#   delete_blob()
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,11 +29,13 @@ from pathlib import Path
 from pydub import AudioSegment
 
 bucket_name = "reelradio"
+flac_folder = "flac"
+txt_folder = "txt"
 
 # [START convert .m4a to .flac]
 def convert_m4a_to_flac(m4a_file):
     new_version = AudioSegment.from_file(m4a_file)
-    new_version.export(Path(m4a_file).stem + ".flac", format="flac", parameters=["-ac", "1", "-ar", "16000"])
+    new_version.export(flac_folder + "/" + Path(m4a_file).stem + ".flac", format="flac", parameters=["-ac", "1", "-ar", "16000"])
     print(time.ctime() + " - Conversion complete.\n")
 # [END convert .m4a to .flac]
 
@@ -57,6 +60,14 @@ def upload_blob(bucket_name, source_file_name, destination_blob_name):
 # [END storage_upload_file]
 
 
+# [START delete_flac]
+def delete_flac(flac_file):
+    os.remove(flac_file)
+
+    print(time.ctime() + " - Deletion complete.\n")
+# [END delete_flac]
+
+
 # [START speech_transcribe_async_gcs]
 def transcribe(gcs_uri):
     """Asynchronously transcribes the audio file specified by the gcs_uri."""
@@ -76,12 +87,29 @@ def transcribe(gcs_uri):
     # them to get the transcripts for the entire audio file.
     for result in response.results:
         # The first alternative is the most likely one for this portion.
-        f.write(u"{}".format(result.alternatives[0].transcript))
+        f1.write(u"{}".format(result.alternatives[0].transcript))
+        f2.write(u"{}".format(result.alternatives[0].transcript))
         print("Confidence: {}".format(result.alternatives[0].confidence))
 
-    f.close()
+    f1.close()
     print(time.ctime() + " - Transcription complete.\n")
 # [END speech_transcribe_async_gcs]
+
+
+# [START delete_blob]
+def delete_blob(bucket_name, blob_name):
+    """deletes a blob from the bucket."""
+    # bucket_name = "your-bucket-name"
+    # blob_name = "your-object-name"
+
+    storage_client = storage.Client()
+
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(blob_name)
+    blob.delete()
+
+    print(time.ctime() + " - Deletion complete.\n")
+# [END delete_blob]
 
 
 if __name__ == "__main__":
@@ -90,7 +118,6 @@ if __name__ == "__main__":
     audio_stem = Path(audio_name).stem
     audio_converted = audio_stem + ".flac"
     audio_text = audio_stem + ".txt"
-    f = open(audio_text, "a")
 
     # Convert audio
     print(time.ctime() + " - Converting " + audio_stem + ".m4a to " + audio_converted + " ...")
@@ -98,8 +125,22 @@ if __name__ == "__main__":
 
     # Upload converted audio file
     print(time.ctime() + " - Uploading " + audio_converted + " to Google Cloud Storage ...")
-    upload_blob(bucket_name, audio_converted, audio_converted)
+    upload_blob(bucket_name, flac_folder + "/" + audio_converted, audio_converted)
 
-    # Transcribe audio file
+    # Delete .flac file from local machine
+    print(time.ctime() + " - Deleting " + audio_converted)
+    delete_flac(flac_folder + "/" + audio_converted)
+
+    # Transcribe audio file and build mysql INSERT statement
     print(time.ctime() + " - Transcribing " + audio_converted + " to " + audio_text + " ...")
+    f1 = open(txt_folder + "/" + audio_text, "a")
+    f2 = open("vsearch.sql", "a")
+    f2.write("INSERT INTO vsearch VALUES ('" + audio_stem + "', \"")
     transcribe("gs://" + bucket_name + "/" + audio_converted)
+    f2.write("\");\n")
+    f2.close()
+
+    # Delete .flac file from bucket
+    print(time.ctime() + " - Deleting gs://" + bucket_name + "/" + audio_converted)
+    delete_blob(bucket_name, audio_converted)
+
