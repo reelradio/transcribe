@@ -4,7 +4,7 @@ A python script to create a .txt transcript from an .m4a audio file
 
 ## How it works
 
-1. Uses pydub to convert an .m4a file into a .flac file (single channel, 16000 Hz)
+1. Uses ffmpeg to convert an .m4a file into a .flac file (single channel, 16000 Hz)
 
 2. Uploads the .flac file to a Goole Cloud Storage bucket (required by Speech-to-Text for audio files over 60 seconds)
 
@@ -66,7 +66,6 @@ sudo apt install python3-pip
 pip install --upgrade google
 pip install --upgrade google-cloud-storage
 pip install google-cloud-speech
-pip install pydub
 sudo apt install ffmpeg
 ```
 

@@ -26,7 +26,6 @@ import time
 from google.cloud import speech
 from google.cloud import storage
 from pathlib import Path
-from pydub import AudioSegment
 
 bucket_name = "reelradio"
 flac_folder = "flac"
@@ -34,8 +33,7 @@ txt_folder = "txt"
 
 # [START convert .m4a to .flac]
 def convert_m4a_to_flac(m4a_file):
-    new_version = AudioSegment.from_file(m4a_file)
-    new_version.export(flac_folder + "/" + Path(m4a_file).stem + ".flac", format="flac", parameters=["-ac", "1", "-ar", "16000"])
+    os.system("ffmpeg -i " + m4a_file + " -ar 16000 -ac 1 -loglevel quiet flac/" + Path(m4a_file).stem + ".flac")
     print(time.ctime() + " - Conversion complete.\n")
 # [END convert .m4a to .flac]
 
@@ -89,7 +87,7 @@ def transcribe(gcs_uri):
         # The first alternative is the most likely one for this portion.
         f1.write(u"{}".format(result.alternatives[0].transcript))
         f2.write(u"{}".format(result.alternatives[0].transcript))
-        print("Confidence: {}".format(result.alternatives[0].confidence))
+        #print("Confidence: {}".format(result.alternatives[0].confidence))
 
     f1.close()
     print(time.ctime() + " - Transcription complete.\n")
@@ -128,7 +126,7 @@ if __name__ == "__main__":
     upload_blob(bucket_name, flac_folder + "/" + audio_converted, audio_converted)
 
     # Delete .flac file from local machine
-    print(time.ctime() + " - Deleting " + audio_converted)
+    print(time.ctime() + " - Deleting flac/" + audio_converted)
     delete_flac(flac_folder + "/" + audio_converted)
 
     # Transcribe audio file and build mysql INSERT statement
