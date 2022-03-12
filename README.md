@@ -1,4 +1,4 @@
-# transcribe
+# transcribe.py
 
 A python script to create a .txt transcript from an .m4a audio file
 
@@ -69,11 +69,29 @@ pip install google-cloud-speech
 sudo apt install ffmpeg
 ```
 
+## vloop.sh option
+
+A shell script to loop through files using pattern matching to transcribe batches with a single command.
+
+Edit vloop.sh to declare the following:
+
+1. Set your starting string
+
+`starting_pattern="abc"`
+
+2. Set the KEY_PATH to your JSON file, same as before
+
+`export GOOGLE_APPLICATION_CREDENTIALS="KEY_PATH"`
+
+3. Call vloop from the command line:
+
+`./vloop.sh`
+
 ### Additional Resources
 
-pydub:
+ffmpeg:
 
-https://github.com/jiaaro/pydub
+https://ffmpeg.org/
 
 Upload objects to a Google Cloud Storage bucket:
 

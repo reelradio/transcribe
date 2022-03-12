@@ -34,7 +34,7 @@ txt_folder = "txt"
 # [START convert .m4a to .flac]
 def convert_m4a_to_flac(m4a_file):
     os.system("ffmpeg -i " + m4a_file + " -ar 16000 -ac 1 -loglevel quiet flac/" + Path(m4a_file).stem + ".flac")
-    print(time.ctime() + " - Conversion complete.\n")
+    print(time.ctime() + " - Conversion complete.")
 # [END convert .m4a to .flac]
 
 
@@ -54,7 +54,7 @@ def upload_blob(bucket_name, source_file_name, destination_blob_name):
 
     blob.upload_from_filename(source_file_name)
 
-    print(time.ctime() + " - Upload complete.\n")
+    print(time.ctime() + " - Upload complete.")
 # [END storage_upload_file]
 
 
@@ -62,7 +62,7 @@ def upload_blob(bucket_name, source_file_name, destination_blob_name):
 def delete_flac(flac_file):
     os.remove(flac_file)
 
-    print(time.ctime() + " - Deletion complete.\n")
+    print(time.ctime() + " - Deletion complete.")
 # [END delete_flac]
 
 
@@ -90,7 +90,7 @@ def transcribe(gcs_uri):
         #print("Confidence: {}".format(result.alternatives[0].confidence))
 
     f1.close()
-    print(time.ctime() + " - Transcription complete.\n")
+    print(time.ctime() + " - Transcription complete.")
 # [END speech_transcribe_async_gcs]
 
 
@@ -126,7 +126,7 @@ if __name__ == "__main__":
     upload_blob(bucket_name, flac_folder + "/" + audio_converted, audio_converted)
 
     # Delete .flac file from local machine
-    print(time.ctime() + " - Deleting flac/" + audio_converted)
+    print(time.ctime() + " - Deleting flac/" + audio_converted + " ...")
     delete_flac(flac_folder + "/" + audio_converted)
 
     # Transcribe audio file and build mysql INSERT statement
@@ -139,6 +139,6 @@ if __name__ == "__main__":
     f2.close()
 
     # Delete .flac file from bucket
-    print(time.ctime() + " - Deleting gs://" + bucket_name + "/" + audio_converted)
+    print(time.ctime() + " - Deleting gs://" + bucket_name + "/" + audio_converted + " ...")
     delete_blob(bucket_name, audio_converted)
 
