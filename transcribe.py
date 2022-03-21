@@ -27,7 +27,7 @@ from google.cloud import speech
 from google.cloud import storage
 from pathlib import Path
 
-bucket_name = "reelradio"
+bucket_name = "BUCKET_NAME" # Replace BUCKET_NAME with your bucket name
 flac_folder = "flac"
 txt_folder = "txt"
 
@@ -116,6 +116,18 @@ if __name__ == "__main__":
     audio_stem = Path(audio_name).stem
     audio_converted = audio_stem + ".flac"
     audio_text = audio_stem + ".txt"
+
+    #checks if the transcription already exists
+    path_sc = Path(txt_folder + "/" + audio_text)
+    if path_sc.is_file():
+        print("transcription exists\n")
+        sys.exit()
+
+    #checks if a scoped transcription already exists
+    path_sc = Path(txt_folder + "/" + audio_stem + "-sc.txt")
+    if path_sc.is_file():
+        print("scoped transcription exists\n")
+        sys.exit()
 
     # Convert audio
     print(time.ctime() + " - Converting " + audio_stem + ".m4a to " + audio_converted + " ...")

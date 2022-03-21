@@ -83,9 +83,11 @@ Edit vloop.sh to declare the following:
 
 `export GOOGLE_APPLICATION_CREDENTIALS="KEY_PATH"`
 
-3. Call vloop from the command line:
+Call vloop from the command line:
 
 `./vloop.sh`
+
+vloop.sh does 2 passes, first transcribing all the scoped exhibits mathcing your specified starting pattern, then matching the remaining exhibits that don't already have a scoped transcript completed.
 
 ### Additional Resources
 
