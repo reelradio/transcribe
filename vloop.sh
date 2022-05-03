@@ -1,8 +1,8 @@
 #!/bin/bash
 starting_pattern="PATTERN" # Replace PATTERN with your starting pattern
 cred_path="KEY_PATH"       # Replace KEY_PATH with the path to your JSON credentials
+FILES="FILE_PATH"          # Replace FILE_PATH with the path to your audio files
 
-FILES="/export/m4a"
 pattern1="${FILES}/${starting_pattern}.*-sc.m4a"
 pattern2="${FILES}/${starting_pattern}.*.m4a"
 
